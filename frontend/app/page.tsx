@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 
+type Task = { id: string; name: string; isCompleted: boolean };
+
 export default function Home() {
   const [newTask, setNewTask] = useState("");
-  const [tasks, setTasks] = useState<{ id: string; name: string }[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   async function createNewTask() {
     if (newTask) {
@@ -36,7 +38,16 @@ export default function Home() {
     }
   }
 
-  async function editTask(task: { id: string; name: string }) {
+  async function deleteAllTask() {
+    if (confirm("Delete all tasks?")) {
+      await fetch("http://localhost:3000/tasks", {
+        method: "DELETE",
+      });
+      loadTasks();
+    }
+  }
+
+  async function editTask(task: Task) {
     const newName = prompt("Edit", task.name);
     if (newName) {
       await fetch(`http://localhost:3000/tasks/${task.id}`, {
@@ -50,6 +61,12 @@ export default function Home() {
     }
   }
 
+  async function toggleCompleted(id: string) {
+    await fetch(`http://localhost:3000/tasks/${id}/check`, {
+      method: "PATCH",
+    });
+  }
+
   useEffect(() => {
     loadTasks();
   }, []);
@@ -57,6 +74,11 @@ export default function Home() {
     <div className="m-8">
       <div className="flex">
         <input
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              createNewTask();
+            }
+          }}
           className="input mr-4 border-2"
           value={newTask}
           onChange={(e) => setNewTask(e.target.value)}
@@ -76,8 +98,12 @@ export default function Home() {
           key={task.id}
         >
           <div className="flex items-center gap-2">
-            <input onChange={""} type="checkbox"></input>
-
+            <input
+              onChange={() => toggleCompleted(task.id)}
+              defaultChecked={task.isCompleted}
+              type="checkbox"
+              className="checkbox"
+            ></input>
             <div className="flex-1"> {task.name} </div>
             <button onClick={() => editTask(task)} className="btn btn-ghost">
               Edit
@@ -92,6 +118,15 @@ export default function Home() {
           </div>
         </div>
       ))}
+
+      <div>
+        <button
+          onClick={() => deleteAllTask()}
+          className="btn btn-error btn-soft"
+        >
+          Delete all
+        </button>
+      </div>
     </div>
   );
 }
